@@ -7,11 +7,29 @@ function Speech(texts, options) {
   var state = "IDLE";
   var index = 0;
   var delayedPlayTimer;
+  
+  // Nuova configurazione per traduzione anticipata
+  var translationBuffer = [];
+  var translationQueue = [];
+  var bufferDepth = options.bufferDepth || 3;  // Blocchi da tradurre in anticipo
+  var syncDelay = options.syncDelay || 2;      // Blocchi di ritardo prima pausa
+  
+  // Controlli sincronizzazione video
+  var videoPausedForSync = false;
+  var lastVideoTime = 0;
+  
   var ready = Promise.resolve(pickEngine())
     .then(function (x) {
       engine = x;
-      if (texts.length) texts = getChunks(texts.join("\n\n"));
-    })
+      if (texts.length) {
+        // Traduzione anticipata abilitata?
+        if (options.enableTranslation && options.translatorEngine) {
+          texts = processWithTranslation(texts, options);
+        } else {
+          texts = getChunks(texts.join("\n\n"));
+        }
+      }
+    });
 
   this.options = options;
   this.play = play;
@@ -24,6 +42,12 @@ function Speech(texts, options) {
   this.gotoEnd = gotoEnd;
 
   function pickEngine() {
+    // Usa selettore engine invece di isGoogleTranslate hard-coded
+    if (options.engineSelector) {
+      return options.engineSelector.selectEngine(options.preferredEngine);
+    }
+    
+    // Fallback: vecchio comportamento
     if (isGoogleTranslate() && !/\s(Hebrew|Telugu)$/.test(options.voice.voiceName)) {
       return googleTranslateTtsEngine.ready()
         .then(function () { return googleTranslateTtsEngine })
@@ -37,6 +61,43 @@ function Speech(texts, options) {
     }
     if (isRemoteVoice()) return remoteTtsEngine;
     return browserTtsEngine;
+  }
+
+  // NUOVA FUNZIONE: Traduzione anticipata
+  function processWithTranslation(rawTexts, options) {
+    var translator = options.translatorEngine;  // GoogleTranslateEngine o LibreTranslateEngine
+    var sourceLang = options.sourceLang || 'auto';
+    var targetLang = options.lang;
+    
+    // Divide testi in chunk più grandi per traduzione migliore
+    var mergedTexts = mergeTextsForTranslation(rawTexts, bufferDepth);
+    
+    // Avvia traduzioni in background per bufferDepth blocchi futuri
+    mergedTexts.forEach(function(text, idx) {
+      if (idx < bufferDepth) {
+        // Traduci immediatamente i primi N blocchi
+        translator.translate(text, targetLang, sourceLang)
+          .then(function (translated) {
+            translationBuffer[idx] = getChunks(translated);
+          })
+          .catch(function (err) {
+            console.warn("Translation failed for block", idx, err);
+            translationBuffer[idx] = getChunks(text); // Fallback: testo originale
+          });
+      }
+    });
+    
+    return mergedTexts;
+  }
+
+  function mergeTextsForTranslation(texts, depth) {
+    // Combina N testi consecutivi per traduzione più contestuale
+    var merged = [];
+    for (var i = 0; i < texts.length; i += depth) {
+      var chunk = texts.slice(i, i + depth).join(' ');
+      merged.push(chunk);
+    }
+    return merged;
   }
 
   function getChunks(text) {
@@ -61,6 +122,39 @@ function Speech(texts, options) {
       index: index,
       texts: texts,
       isRTL: /^(ar|az|dv|he|iw|ku|fa|ur)\b/.test(options.lang),
+      videoPausedForSync: videoPausedForSync,
+    }
+  }
+
+  // NUOVA FUNZIONE: Controllo sincronizzazione
+  function checkVideoSync() {
+    if (!options.videoElement) return Promise.resolve();
+    
+    var video = options.videoElement;
+    var currentTime = video.currentTime;
+    
+    // Se video è troppo indietro rispetto alla sintesi
+    if (videoPausedForSync && currentTime > lastVideoTime + 2) {
+      // Video ha ripreso, resetta flag
+      videoPausedForSync = false;
+      console.log("Video sync recovered");
+    }
+    
+    return Promise.resolve();
+  }
+
+  // MODIFICATA: Pausa video se in ritardo
+  function pauseVideoIfBehind() {
+    if (!options.videoElement || !syncDelay) return;
+    
+    var video = options.videoElement;
+    var aheadBlocks = index - Math.floor(video.currentTime / 5); // Stima: 1 blocco ≈ 5 secondi
+    
+    if (aheadBlocks > syncDelay && !videoPausedForSync) {
+      console.log("Pausing video for sync (ahead by", aheadBlocks, "blocks)");
+      video.pause();
+      videoPausedForSync = true;
+      lastVideoTime = video.currentTime;
     }
   }
 
@@ -75,10 +169,17 @@ function Speech(texts, options) {
       state.startTime = new Date().getTime();
       return ready
         .then(function () {
+          // Avvia traduzione anticipata per prossimi blocchi
+          preloadTranslation();
+          
           return speak(texts[index],
             function () {
               state = "IDLE";
               index++;
+              
+              // Controllo sincronizzazione dopo ogni blocco
+              pauseVideoIfBehind();
+              
               play()
                 .catch(function (err) {
                   if (self.onEnd) self.onEnd(err)
@@ -95,6 +196,23 @@ function Speech(texts, options) {
     }
   }
 
+  // NUOVA FUNZIONE: Pre-caricamento traduzione
+  function preloadTranslation() {
+    if (!options.translatorEngine || !texts[index + bufferDepth]) return;
+    
+    // Traduci blocco futuro se non ancora tradotto
+    var futureIdx = index + bufferDepth;
+    if (translationBuffer[futureIdx] === undefined) {
+      options.translatorEngine.translate(texts[futureIdx], options.lang, options.sourceLang)
+        .then(function (translated) {
+          translationBuffer[futureIdx] = getChunks(translated);
+        })
+        .catch(function (err) {
+          console.warn("Prefetch translation failed:", err);
+        });
+    }
+  }
+
   function delayedPlay() {
     clearTimeout(delayedPlayTimer);
     delayedPlayTimer = setTimeout(function () { stop().then(play) }, 750);
@@ -106,6 +224,7 @@ function Speech(texts, options) {
       .then(function () {
         clearTimeout(delayedPlayTimer);
         state = "IDLE";
+        videoPausedForSync = false;
       })
   }
 
@@ -132,6 +251,7 @@ function Speech(texts, options) {
 
   function seek(n) {
     index = n;
+    videoPausedForSync = false;
     return play();
   }
 

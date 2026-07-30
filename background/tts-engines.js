@@ -2,6 +2,8 @@
 var browserTtsEngine = browser.tts ? new BrowserTtsEngine() : (typeof speechSynthesis != 'undefined' ? new WebSpeechEngine() : new DummyTtsEngine());
 var remoteTtsEngine = new RemoteTtsEngine(config.serviceUrl);
 var googleTranslateTtsEngine = new GoogleTranslateTtsEngine();
+var sherpaTtsEngine = new SherpaTtsEngine('http://127.0.0.1:8000');  // Porta Sherpa-TTS
+var libreTranslateEngine = new LibreTranslateEngine('http://127.0.0.1:5000');
 
 /*
 interface Options {
@@ -323,4 +325,108 @@ function GoogleTranslateTtsEngine() {
     .map(function (item) {
       return { voiceName: item.voice_name, lang: item.lang };
     })
+}
+
+
+function LibreTranslateEngine(serviceUrl) {
+  this.translate = function (text, targetLang, sourceLang) {
+    return ajaxPost(serviceUrl + "/translate", {
+      q: text,
+      source: sourceLang || "auto",
+      target: targetLang,
+      format: "text"
+    }, "json")
+    .then(function (response) {
+      var result = JSON.parse(response);
+      if (result.error) throw new Error(result.error);
+      return result.translatedText || result;
+    });
+  };
+  
+  this.ready = function () {
+    return ajaxGet(serviceUrl + "/")
+      .then(function () { return true; })
+      .catch(function () { return false; });
+  };
+}
+
+
+// Engine selettore - sceglie dinamicamente tra Sherpa/Google/Browser
+
+function TtsEngineSelector(sherpaUrl, googleEnabled, sherpaEnabled) {
+  var selectedEngine = null;
+  var cachedEngines = {};
+  
+  this.initialize = function () {
+    var promises = [];
+    
+    // Carica Sherpa se abilitato
+    if (sherpaEnabled) {
+      promises.push(
+        new SherpaTtsEngine(sherpaUrl).ready()
+          .then(function (available) {
+            if (available) {
+              cachedEngines.sherpa = new SherpaTtsEngine(sherpaUrl);
+              console.log("Sherpa-TTS engine ready");
+            }
+          })
+          .catch(function (err) {
+            console.warn("Sherpa-TTS not available:", err);
+          })
+      );
+    }
+    
+    return Promise.all(promises)
+      .then(function () {
+        return this.selectEngine();
+      }.bind(this));
+  };
+  
+  this.selectEngine = function (preference) {
+    // Preferenza: Sherpa > Google > Browser
+    var preferenceOrder = preference || ['sherpa', 'google', 'browser'];
+    
+    for (var i = 0; i < preferenceOrder.length; i++) {
+      var pref = preferenceOrder[i];
+      
+      if (pref === 'sherpa' && cachedEngines.sherpa) {
+        selectedEngine = cachedEngines.sherpa;
+        return Promise.resolve(selectedEngine);
+      }
+      
+      if (pref === 'google' && googleEnabled && googleTranslateTtsEngine) {
+        return googleTranslateTtsEngine.ready()
+          .then(function () {
+            selectedEngine = googleTranslateTtsEngine;
+            return selectedEngine;
+          })
+          .catch(function () {
+            continue; // Prova prossimo engine
+          });
+      }
+      
+      if (pref === 'browser' && browserTtsEngine) {
+        selectedEngine = browserTtsEngine;
+        return Promise.resolve(selectedEngine);
+      }
+    }
+    
+    throw new Error("No TTS engine available");
+  };
+  
+  this.getSelectedEngine = function () {
+    return selectedEngine;
+  };
+  
+  this.setPreference = function (preference) {
+    return this.selectEngine(preference);
+  };
+  
+  this.getAvailableEngines = function () {
+    var available = [];
+    if (cachedEngines.sherpa) available.push({ id: 'sherpa', name: 'Sherpa-TTS (Locale)' });
+    if (googleEnabled) available.push({ id: 'google', name: 'Google Translate TTS' });
+    available.push({ id: 'browser', name: 'Browser System TTS' });
+    return available;
+  };
 }

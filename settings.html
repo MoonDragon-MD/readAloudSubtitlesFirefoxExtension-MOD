@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="UTF-8">
     <title>YouTube subtitles-to-speech settings</title>
@@ -12,23 +11,21 @@
             background-color: #1a1a1a;
             color: #ffffff;
         }
-
-        body a {
-            color: pink;
-        }
-
+        body a { color: pink; }
         h1 {
             margin-top: 0;
             font-size: 130%;
             display: flex;
             justify-content: center;
         }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
+        h2 {
+            font-size: 105%;
+            margin: 12px 0 6px;
+            color: #d495bb;
+            border-bottom: 1px solid #9c516a;
+            padding-bottom: 3px;
         }
-
+        label { display: block; margin-bottom: 5px; }
         .slider {
             width: 100%;
             background-color: #333333;
@@ -36,97 +33,147 @@
             border: none;
             height: 6px;
         }
-
         .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
+            -webkit-appearance: none; appearance: none;
+            width: 16px; height: 16px;
             border-radius: 50%;
-            background-color: #ffffff;
-            cursor: pointer;
+            background-color: #ffffff; cursor: pointer;
         }
-
         .slider::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
+            width: 16px; height: 16px;
             border-radius: 50%;
-            background-color: #ffffff;
-            cursor: pointer;
-        }
-
-        .slider::-ms-thumb {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background-color: #ffffff;
-            cursor: pointer;
+            background-color: #ffffff; cursor: pointer;
         }
         .custom-select {
-            width: 100%;
-            padding: 5px;
-            background-color: #333333;
-            color: #ffffff;
+            width: 100%; padding: 5px;
+            background-color: #333333; color: #ffffff;
+            border-radius: 5px; border: none; cursor: pointer;
+        }
+        .custom-select:hover, .custom-select:focus {
+            background-color: #444444; outline: none;
+        }
+        .input-text {
+            width: 95%; padding: 5px;
+            background-color: #333333; color: #ffffff;
+            border-radius: 5px; border: 1px solid #555;
+            margin-top: 4px; font-size: 12px;
+        }
+        .input-text:focus { outline: 1px solid #9c516a; }
+        button {
+            background-color: #9c516a; color: #fff;
+            border: none; padding: 4px 10px;
+            border-radius: 5px; cursor: pointer;
+            margin-top: 6px; font-size: 11px;
+        }
+        button:hover { background-color: #e5006e; }
+        .status {
+            display: inline-block; font-size: 11px;
+            padding: 2px 6px; border-radius: 3px; margin-left: 4px;
+        }
+        .status.ok { background: rgba(76,175,80,.3); color: #81c784; }
+        .status.error { background: rgba(244,67,54,.3); color: #e57373; }
+        .hint { font-size: 10px; color: #888; margin-top: 3px; }
+        .section {
+            margin-top: 8px; padding: 8px;
+            background-color: rgba(255,255,255,0.04);
             border-radius: 5px;
-            border: none;
-            cursor: pointer;
         }
-
-        .custom-select:hover,
-        .custom-select:focus {
-            background-color: #444444;
-            outline: none;
+        .hidden { display: none; }
+        .val-display {
+            font-size: 11px; color: #aaa;
+            text-align: right; margin-top: -2px; margin-bottom: 6px;
         }
-
+        .checkbox-row {
+            display: flex; align-items: center; gap: 6px; margin-top: 6px;
+        }
+        .checkbox-row input { margin: 0; }
         .donate-button {
-        display: flex;
-        justify-content: center;
-        margin-top: 10px;
+            display: flex; justify-content: center; margin-top: 10px;
         }
-
         .donate-button a {
-        display: inline-block;
-        padding: 3px 10px; /* Adjusted padding to make the button smaller */
-        background-color: #9c516a;
-        color: #ffffff;
-        text-decoration: none;
-        border-radius: 5px;
-        font-size: small;
+            display: inline-block; padding: 3px 10px;
+            background-color: #9c516a; color: #fff;
+            text-decoration: none; border-radius: 5px; font-size: small;
         }
-
-        .donate-button a:hover {
-        background-color: #e5006e;
-        }
-
+        .donate-button a:hover { background-color: #e5006e; }
     </style>
     <script src="localization.js"></script>
     <script src="content.js"></script>
     <script src="settings.js"></script>
-
 </head>
-
 <body>
     <h1 id="settingsTitle"></h1>
 
-    <label for="speedSlider" id="speedLabel"></label>
-    <input type="range" id="speedSlider" class="slider" min="1.7" max="3" value="2.3" step="0.1">
+    <div class="section">
+        <h2>🔊 TTS Engine</h2>
+        <label>Engine:</label>
+        <select id="ttsEngineSelect" class="custom-select">
+            <option value="sherpa">Sherpa-TTS (Locale)</option>
+            <option value="google">Google Translate TTS</option>
+            <option value="browser">Browser System TTS</option>
+        </select>
 
-    <label for="volumeSlider" id="volumeLabel"></label>
-    <input type="range" id="volumeSlider" class="slider" min="0" max="1" value="1" step="0.1">
+        <div id="sherpaSettings">
+            <label style="margin-top:8px;">URL Sherpa Server:</label>
+            <input type="text" id="sherpaUrl" class="input-text" value="http://127.0.0.1:8000">
+            <button id="testSherpaBtn">Test</button>
+            <span id="sherpaStatus" class="status hidden"></span>
+            <div class="hint">Server locale porta 8000</div>
+        </div>
 
-    <label for="engineSelect" id="voiceLabel"></label>
-    <select id="engineSelect" class="custom-select"></select>
-        <!-- Options will be populated dynamically -->
-
-    <br><br>
-    
-    <span style="font-size: 100%; display: flex;
-        justify-content: center;" id="learnMoreText">
-    </span>
-    <span style="font-size: 85%; display: block; text-align: center; font-family: Tahoma, sans-serif;" id="selectLanguageText">
-    </span>
-    <div class="donate-button" id="donateButton">
+        <label style="margin-top:8px;">Voce:</label>
+        <select id="engineSelect" class="custom-select"></select>
     </div>
-</body>
 
+    <div class="section">
+        <h2>🌐 Traduttore</h2>
+        <label>Motore:</label>
+        <select id="translatorSelect" class="custom-select">
+            <option value="libretranslate">LibreTranslate (Locale)</option>
+            <option value="google">Google Translate</option>
+        </select>
+        <div id="libreTranslateSettings">
+            <label style="margin-top:8px;">URL LibreTranslate:</label>
+            <input type="text" id="libreTranslateUrl" class="input-text" value="http://127.0.0.1:5000">
+            <button id="testLibreBtn">Test</button>
+            <span id="libreStatus" class="status hidden"></span>
+        </div>
+    </div>
+
+    <div class="section">
+        <label for="speedSlider" id="speedLabel"></label>
+        <input type="range" id="speedSlider" class="slider" min="1.3" max="2.5" value="1.5" step="0.1">
+        <div class="val-display"><span id="speedValue">1.5x</span></div>
+
+        <label for="volumeSlider" id="volumeLabel"></label>
+        <input type="range" id="volumeSlider" class="slider" min="0" max="1" value="1" step="0.1">
+        <div class="val-display"><span id="volumeValue">100%</span></div>
+    </div>
+
+    <div class="section">
+        <h2>🔄 Buffer Traduzione</h2>
+        <label>Pre-traduci N blocchi:</label>
+        <input type="range" id="translationBufferSlider" class="slider" min="1" max="10" value="3" step="1">
+        <div class="val-display"><span id="translationBufferValue">3</span> blocchi</div>
+        <div class="hint">Più alto = traduzione migliore ma più attesa</div>
+    </div>
+
+    <div class="section">
+        <h2>⏱️ Sync Video</h2>
+        <label>Pausa video se in ritardo di:</label>
+        <input type="range" id="syncDelaySlider" class="slider" min="0" max="10" value="2" step="1">
+        <div class="val-display"><span id="syncDelayValue">2</span> blocchi</div>
+        <div class="checkbox-row">
+            <input type="checkbox" id="enableVideoPause" checked>
+            <span>Pausa video automatica</span>
+        </div>
+    </div>
+
+    <br>
+    <span style="font-size: 100%; display: flex; justify-content: center;" id="learnMoreText"></span>
+    <span style="font-size: 85%; display: block; text-align: center; font-family: Tahoma, sans-serif;" id="selectLanguageText"></span>
+    <div class="donate-button" id="donateButton"></div>
+	<div> <p>Created by conradRz</p> </div>
+	<div> <p>Modded by MoonDragon</p> </div>
+</body>
 </html>

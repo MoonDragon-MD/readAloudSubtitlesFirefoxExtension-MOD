@@ -3,13 +3,21 @@
   "name": "__MSG_appName__",
   "description": "__MSG_appDesc__",
   "default_locale": "en",
-  "version": "0.1.7.16",
+  "version": "0.1.7.17",
   "icons": {
     "128": "icon128.png"
   },
-  "permissions": ["storage", "tabs"],
+  "permissions": [
+    "storage",
+    "tabs",
+    "identity",
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "https://translate.google.com/*"
+  ],
   "browser_action": {
-    "default_popup": "settings.html"
+    "default_popup": "settings.html",
+    "default_title": "Read Aloud Subtitles"
   },
   "content_scripts": [
     {
@@ -23,6 +31,8 @@
     "scripts": [
       "background/defaults.js",
       "background/google-translate.js",
+      "background/libretranslate.js",
+      "background/sherpa-tts-engine.js",
       "background/tts-engines.js",
       "background/speech.js",
       "background/document.js",
@@ -30,7 +40,11 @@
     ],
     "persistent": true
   },
-  "web_accessible_resources": ["settings.html", "content.js", "injected.js"],
+  "web_accessible_resources": [
+    "settings.html",
+    "content.js",
+    "injected.js"
+  ],
   "options_ui": {
     "page": "settings.html",
     "browser_style": false

@@ -1,5 +1,5 @@
 var config = {
-  serviceUrl: "https://support.readaloud.app",
+  serviceUrl: "http://127.0.0.1:5000",
   webAppUrl: "https://readaloud.app",
   entityMap: {
     '&': '&amp;',
@@ -316,4 +316,34 @@ function truncateRepeatedChars(text, max) {
   }
   if (count < max) result += text.slice(startIndex)
   return result
+}
+
+/**
+ * ENGINE SELECTOR HELPER
+ */
+function createEngineSelector(settings) {
+  return new TtsEngineSelector(
+    settings.sherpaUrl || 'http://127.0.0.1:8000',
+    settings.ttsEngine === 'google',
+    settings.ttsEngine === 'sherpa'
+  );
+}
+
+/**
+ * TRANSLATOR SELECTOR HELPER
+ */
+function createTranslatorSelector(settings) {
+  if (settings.translatorEngine === 'libretranslate') {
+    return {
+      translate: (text, targetLang, sourceLang) => 
+        libreTranslateTranslate(text, targetLang, sourceLang),
+      ready: () => libreTranslateReady()
+    };
+  } else {
+    return {
+      translate: (text, targetLang, sourceLang) => 
+        googleTranslateTranslate(text, targetLang, sourceLang),
+      ready: () => googleTranslateReady()
+    };
+  }
 }

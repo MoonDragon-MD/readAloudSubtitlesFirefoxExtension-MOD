@@ -1,3 +1,15 @@
+## Details of the MoonDragon MOD
+
+1) Ability to use offline translation via LibreTranslate
+2) Ability to use two offline TTS engines (native Windows, Sherpa-ONNX for both Linux/macOS and Windows)
+3) Ability to send multiple subtitles to the translator to achieve a better translation
+4) Ability to set the interval between subtitles and whether to pause if out of sync with the video
+
+Currently, the notes are in Italian; this is a trial version, and it works well with native Windows TTS and LibreTranslate.
+The rest still needs to be optimized, including the GUI.
+
+M.D.
+
 # YouTube Subtitle Reader
 
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html) [![Paypal donate button](readmePics/PayPal-Donate-Button.png)](https://www.paypal.com/donate/?hosted_button_id=2QH26ZA928JNC)
