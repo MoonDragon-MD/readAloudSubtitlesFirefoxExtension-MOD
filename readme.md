@@ -8,7 +8,14 @@
 ![](img-MOD.jpg)
 
 Currently, the notes are in Italian; this is a trial version, and it works well with native Windows TTS and LibreTranslate.
+
 The rest still needs to be optimized, including the GUI.
+
+It would be interesting to implement:
+
+a) A system that hides the content inside square brackets [Music] from the translator
+
+b) The ability to open a custom SRT file
 
 M.D.
 
