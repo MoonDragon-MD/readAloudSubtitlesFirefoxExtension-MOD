@@ -5,6 +5,8 @@
 3) Ability to send multiple subtitles to the translator to achieve a better translation
 4) Ability to set the interval between subtitles and whether to pause if out of sync with the video
 
+![](img-MOD.jpg)
+
 Currently, the notes are in Italian; this is a trial version, and it works well with native Windows TTS and LibreTranslate.
 The rest still needs to be optimized, including the GUI.
 
